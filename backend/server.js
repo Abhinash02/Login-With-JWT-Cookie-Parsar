@@ -2,38 +2,36 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const requestInterceptor = require("./requestInterceptor"); // Import Interceptor
 
 const app = express();
 const port = 5000;
-const JWT_SECRET = "your_secret_key";
+const JWT_SECRET = "your_secret_key"; // Change this to a strong secret key
 
+// Middleware
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(requestInterceptor); // ✅ Apply interceptor globally
 
 // Hardcoded Users with Different Roles
 const users = [
   { id: 1, username: "admin", password: "123", role: "admin" },
-  { id: 2, username: "user", password: "457", role: "user" }
+  { id: 2, username: "user", password: "457", role: "user" },
+  { id: 3, username: "Abhinash", password: "111", role: "user" },
+  { id: 4, username: "Abhinash", password: "112", role: "admin" },
+  { id: 5, username: "sam", password: "1234", role: "user" },
 ];
 
-// Middleware for Authentication
+// Authentication Middleware
 const authenticateJWT = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Invalid token" });
-    req.user = decoded;
-    next();
-  });
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" }); // Interceptor already verifies JWT
+  next();
 };
 
-// Middleware for Role-Based Access
+// Role-Based Access Control Middleware
 const authorizeRole = (role) => (req, res, next) => {
-  if (req.user.role !== role) {
-    return res.status(403).json({ error: "Access denied" });
-  }
+  if (req.user.role !== role) return res.status(403).json({ error: "Access denied" });
   next();
 };
 
@@ -50,14 +48,11 @@ app.post("/", (req, res) => {
   res.json({ role: user.role });
 });
 
-
-
 // Logout Route
 app.post("/logout", (req, res) => {
   res.clearCookie("token", { path: "/" });
   res.json({ message: "Logged out" });
 });
-
 
 // Admin-only Route
 app.get("/admin", authenticateJWT, authorizeRole("admin"), (req, res) => {
@@ -69,9 +64,10 @@ app.get("/user", authenticateJWT, authorizeRole("user"), (req, res) => {
   res.json({ message: "Welcome User", user: req.user });
 });
 
-// Protected Route Example
+// General Protected Route
 app.get("/protected", authenticateJWT, (req, res) => {
   res.json({ message: "This is a protected route", user: req.user });
 });
 
+// Start Server
 app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
