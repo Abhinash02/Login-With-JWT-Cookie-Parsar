@@ -14,7 +14,7 @@ function Login() {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000", {
+      const response = await fetch("http://localhost:5000/login", { // Corrected endpoint to /login
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role }),
@@ -24,10 +24,11 @@ function Login() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Login failed");
 
+      // Redirect based on role
       if (data.role === "admin") {
         router.push("/admin");
       } else {
-        router.push("/user");
+        router.push("/crud");
       }
     } catch (error) {
       setError(error.message);
@@ -72,6 +73,13 @@ function Login() {
           >
             Login
           </button>
+          <button
+      type="button"
+      onClick={() => router.push("/signup")}
+      className="w-full p-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded transition-all"
+    >
+      Signup
+    </button>
         </form>
       </div>
     </div>
